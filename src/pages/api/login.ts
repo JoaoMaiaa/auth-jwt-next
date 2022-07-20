@@ -1,6 +1,9 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
+import { NextApiRequest, NextApiResponse } from 'next'
 import { MongoClient } from 'mongodb'
 import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
+
+const secret = process.env.JWT_TOKEN
 
 async function connect(uri: string) {
   const client = await MongoClient.connect(uri)
@@ -12,22 +15,25 @@ async function connect(uri: string) {
 export default async function login(req: NextApiRequest, res: NextApiResponse) {
   const { email, password } = req.body
 
-  // const db = await connect(`${process.env.MONGODB_URL}`)
-  // const collection = db.collection('consumer')
+  const db = await connect(`${process.env.MONGODB_URL}`)
+  const collection = db.collection('consumer')
 
+  const consumer = await collection.find({ email }).toArray()
   try {
-    bcrypt.hash(password, 10, function (err, hashedPassword) {
-      if (err) {
-        res.json(err)
-      } else {
-        // await collection.insertOne({
-        //   email,
-        //   hashedPassword
-        // })
-        res.json({ email, hashedPassword })
-      }
-    })
+    if (!consumer.map((cons) => cons.email).toString()) {
+      res.json({ message: 'Erro na senha ou no email' })
+    } else {
+      const hash = consumer.map((cons) => cons.hash).toString()
+      bcrypt.compare(password, hash, function (err, same) {
+        if (!same) {
+          res.json({ message: 'Erro na senha ou no email' })
+        } else {
+          const token = jwt.sign({ email }, `${secret}`, { expiresIn: '2d' })
+          res.json({ email, token })
+        }
+      })
+    }
   } catch (error) {
-    res.status(500).json({ message: error })
+    res.json(error)
   }
 }
