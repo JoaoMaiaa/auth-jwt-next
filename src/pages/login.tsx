@@ -1,10 +1,13 @@
 import { FormEventHandler, useState } from 'react'
+import { useRouter } from 'next/router'
 
 import LoginServices from './services/login'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
+  const router = useRouter()
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault()
@@ -18,6 +21,7 @@ export default function Login() {
       //   .then((result) => result.data)
       setEmail('')
       setPassword('')
+      router.push('/auth')
     } catch (error) {
       console.log(error)
       // setError(true)
